@@ -4,11 +4,11 @@ import { FC, useState } from "react";
 import { useGetCategoriesQuery, useCreateCategoryMutation } from "@/services/chatApi";
 import { useSession } from "next-auth/react";
 import { useDispatch } from "react-redux";
+import Link from "next/link";
 import { AppDispatch } from "@/store/store";
 import { showNotification } from "@/reducers/notificationReducer";
 import { localizationService } from "@/services/localizationService";
 import { demoCategories } from "@/lib/demoChat";
-
 
 interface CategoryListProps {
   onSelect: (id: string, name: string) => void;
@@ -49,9 +49,9 @@ export const CategoryList: FC<CategoryListProps> = ({ onSelect }) => {
       <>
         <div className="p-4 text-gray-600">
           {localizationService.get("Please")}{" "}
-          <a href="/api/auth/signin" className="text-blue-600 hover:underline">
+          <Link href="/api/auth/signin" className="text-blue-600 hover:underline">
             {localizationService.get("LogIn")}
-          </a>{" "}
+          </Link>{" "}
           {localizationService.get("OrRegister")}
         </div>
 

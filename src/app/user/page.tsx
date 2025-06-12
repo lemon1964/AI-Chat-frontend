@@ -6,6 +6,7 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useDispatch } from "react-redux";
+import Link from "next/link";
 import { AppDispatch } from "@/store/store";
 import "@/styles/starry_sky_styles.css";
 import { audioService } from "@/services/audioService";
@@ -13,7 +14,6 @@ import apiClient from "@/services/authClientService";
 import Notification from "@/Components/common/Notification";
 import { localizationService } from "@/services/localizationService";
 import { showNotification } from "@/reducers/notificationReducer";
-
 
 const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -101,12 +101,12 @@ export default function UserProfilePage() {
         <Notification />
 
         <div className="mt-8">
-          <a
+          <Link
             href="/"
             className="inline-block px-4 py-2 bg-indigo-600 bg-opacity-80 text-white rounded-lg hover:bg-indigo-700 transition"
           >
             {localizationService.get("ToHome")}
-          </a>
+          </Link>
         </div>
 
         <h1 className="mt-6 text-4xl font-extrabold text-white drop-shadow-lg">
