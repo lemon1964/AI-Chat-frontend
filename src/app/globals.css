@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* базовые настройки для адаптации к мобильным устройствам */
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0; /* Убираем лишние отступы */
+  padding: 0; /* Убираем лишние отступы */
+  overflow-x: hidden; /* Запрещаем горизонтальный скроллинг */
+}
+
+.container {
+  display: flex; /* Убедимся, что контейнер подстраивается */
+  flex-wrap: wrap; /* Элементы будут переноситься на следующую строку при недостатке места */
+  justify-content: center; /* Центрируем элементы */
+  gap: 1rem; /* Пространство между элементами */
+}
+
+img {
+  max-width: 100%; /* Изображения не будут выходить за пределы контейнера */
+  height: auto;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  word-break: break-word; /* Текст переносится по словам, чтобы не вылезать за пределы */
+}
+
+button {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  border-radius: 0.5rem;
+  text-align: center;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #f0f0f0;
+}
+
+/* Медиа-запросы для небольших экранов */
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column; /* Элементы располагаются вертикально */
+    align-items: center; /* Центрируем элементы */
+    gap: rem; /* Увеличиваем отступы между элементами */
+  }
+
+  h1 {
+    font-size: 1.8rem; /* Уменьшаем размер заголовков */
+    text-align: center; /* Центрируем текст */
+  }
+
+  button {
+    width: 100%; /* Кнопки растягиваются на всю ширину */
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.5rem; /* Ещё меньше заголовки для небольших экранов */
+  }
+
+  .container {
+    padding: 0 1rem; /* Добавляем отступы, чтобы элементы не прилегали к краям */
+  }
+
+  button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem; /* Ещё меньше кнопки */
+  }
+}
+
+/* Расположение картинок в викторине */
+.wrapper {
+  text-align: center;
+}
+
+.answer-item {
+  display: inline-block;
+  width: 25%; /* Можно подстроить для нужного размера */
+  margin: 1rem;
+  vertical-align: top; /* Выравнивание элементов по верхнему краю */
+}
+
+.answer-item button {
+  display: block; /* Чтобы кнопки не ломали layout */
+  margin: 0 auto;
+}
+/* Расположение картинок в викторине */
+
+
+
+
