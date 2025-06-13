@@ -16,7 +16,6 @@ export const MODEL_OPTIONS = {
       { 
         id: "flux_schnell_free", 
         name: "Flux.1 [schnell] (free)", 
-        // description: "Генерация изображений через Together.ai" 
       }
     ]
   };

@@ -35,7 +35,6 @@ export const AppBar: FC<AppBarProps> = ({ onLanguageChange }) => {
   // Проверка и обновление токена
   const verifySession = useCallback(async () => {
     if (!session?.accessToken || !session.refreshToken) return;
-
     try {
       await apiClient.post("/api/auth/token/verify/", {
         token: session.refreshToken,
@@ -57,7 +56,7 @@ export const AppBar: FC<AppBarProps> = ({ onLanguageChange }) => {
         const res = await apiClient.get("/api/auth/get-user-data/");
         setUserName(res.data.name || "🫥");
         // Показываем правила один раз после логина
-         dispatch(showNotification(localizationService.get("RateLimitRules"), "info", 10));
+         dispatch(showNotification(localizationService.get("RateLimitRules"), "info", 5));
       } catch {
         dispatch(showNotification(localizationService.get("ErrorFetchingProfile"), "error", 4));
         setUserName("🫥");

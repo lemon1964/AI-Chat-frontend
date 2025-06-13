@@ -39,8 +39,8 @@
   "ServerUnavailable": "The server seems offline. Please try again later.",
   "Retry": "Retry",
   "ServerOfflineBanner": "The server appears to be offline. Some data may not load.",
-  "ErrorFetchingProfile": "Could not load your profile. Some features may be unavailable.",
-  "RateLimitRules": "You can send up to 5 text, 3 code, and 1 image requests per 72 hours.",
+  "ErrorFetchingProfile": "Could not load your profile. There may be problems with the server or you are not registered.",
+  "RateLimitRules": "You can send up to 5 text, 3 code, and 1 image requests per 24 hours.",
 
   "LimitReached": "You have reached the {type} limit.",
   "NextAllowedAt": "Next allowed at {when}.",

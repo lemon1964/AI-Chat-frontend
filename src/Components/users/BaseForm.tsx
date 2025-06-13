@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import axios from "axios";
-// import apiClient from "@/utils/authClient";
 import { signIn } from "next-auth/react";
+import { useDispatch } from "react-redux";
+import { showNotification } from "@/reducers/notificationReducer";
+import { AppDispatch } from "@/store/store";
 
 type BaseFormProps = {
   type: "login" | "register";
@@ -11,6 +13,7 @@ type BaseFormProps = {
 const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const BaseForm: React.FC<BaseFormProps> = ({ type, onClose }) => {
+  const dispatch = useDispatch<AppDispatch>();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -25,7 +28,14 @@ const BaseForm: React.FC<BaseFormProps> = ({ type, onClose }) => {
     if (resetMode) {
       try {
         await axios.post(`${baseURL}/api/auth/password/reset/`, { email });
-        alert("Password reset link sent to your email.");
+        // alert("Password reset link sent to your email.");
+        dispatch(
+          showNotification(
+            "Password reset link sent to your email. Please check your email and follow the link to reset your password.",
+            "success",
+            5
+          )
+        );
         setResetMode(false);
       } catch {
         setError("Error sending password reset link.");
@@ -46,7 +56,14 @@ const BaseForm: React.FC<BaseFormProps> = ({ type, onClose }) => {
           password1: password,
           password2: confirmPassword,
         });
-        alert("Registration successful.");
+        // alert("Registration successful.");
+        dispatch(
+          showNotification(
+            "Registration successful. Please check your email for the confirmation link to activate your account.",
+            "success",
+            5
+          )
+        );
       } else {
         const result = await signIn("credentials", { email, password, redirect: false });
         if (result?.error) {

@@ -2,7 +2,7 @@
 import { useCallback } from "react";
 
 const STORAGE_KEY = "rate_limit";
-const PERIOD_MS = 72 * 3600_000; // 72 часа
+const PERIOD_MS = 24 * 3600_000; // 24 часа
 const LIMITS = {
   text: 5,
   code: 3,
