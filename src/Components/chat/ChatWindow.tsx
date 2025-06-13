@@ -105,7 +105,7 @@ export const ChatWindow: FC<ChatWindowProps> = ({ categoryId, categoryName }) =>
     // Промокод-юзер
     if (!isPromo) {
       const { ok, retryAfter } = isAllowed(type);
-      console.log(`[ChatWindow] isAllowed("${type}") →`, { ok, retryAfter });
+      // console.log(`[ChatWindow] isAllowed("${type}") →`, { ok, retryAfter });
       if (!ok) {
         const when = retryAfter!.toLocaleString();
         // получаем перевод типа:

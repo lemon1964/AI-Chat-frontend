@@ -17,10 +17,8 @@ const VerificationSuccess: React.FC = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="text-center bg-white p-8 rounded shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4">Email Verified Successfully!</h2>
-        <p className="text-gray-700">
-          Redirecting to the homepage...
-        </p>
+        <h2 className="text-2xl font-bold mb-4">Электронная почта успешно подтверждена!</h2>
+        <p className="text-gray-700">Отправляемся на домашнюю страницу...</p>
       </div>
     </div>
   );
