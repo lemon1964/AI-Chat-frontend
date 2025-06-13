@@ -8,11 +8,14 @@ import { CategoryList } from "@/Components/chat/CategoryList";
 import { ChatWindow } from "@/Components/chat/ChatWindow";
 import { AppBar } from "@/Components/chat/AppBar";
 import { localizationService } from "@/services/localizationService";
+import ChatSkeleton from "@/Components/common/Preloader";
+import useBackendWakeUp from "@/hooks/useBackendWakeUp";
 
 export default function ChatPage() {
   const session = useSession();
   const [selected, setSelected] = useState<{ id: string; name: string } | null>(null);
   const [lang, setLang] = useState(localizationService.getCurrentLanguage());
+  const isWakingUp = useBackendWakeUp();
 
   useEffect(() => {
     if (session.data) {
@@ -20,6 +23,15 @@ export default function ChatPage() {
       setSelected(null);
     }
   }, [session.data]);
+
+  if (isWakingUp) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <ChatSkeleton />
+        <span className="ml-2 text-gray-600">Пробуждаем сервер, подождите…</span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen">
