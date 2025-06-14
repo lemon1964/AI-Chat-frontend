@@ -23,7 +23,7 @@
   "CategoryCreatedError": "Failed to create category",
   "Please": "Please,",
   "LogIn": "log in,",
-  "OrRegister": "or register to work with categories.",
+  "OrRegister": "or register to send requests.",
   "LoadingCategories": "Loading categories...",
   "ErrorLoadingCategories": "Error loading categories",
   "NewCategory": "New category",

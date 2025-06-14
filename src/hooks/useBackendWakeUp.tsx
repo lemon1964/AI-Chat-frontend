@@ -17,7 +17,7 @@ export default function useBackendWakeUp() {
       let delay = 1000; // 1 секунда
       for (let i = 0; i < 5 && !cancelled; i++) {
         try {
-          await apiClient.get("/"); // обращаемся к бекенду
+          await apiClient.get("/healthz/");
           if (!cancelled) {
             setIsWakingUp(false);
           }
