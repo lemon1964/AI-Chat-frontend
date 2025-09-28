@@ -63,9 +63,15 @@ export default function MermindContainer() {
   const [docUsedModel, setDocUsedModel] = useState<string>("");
   const displayModel = docUsedModel || usedModel || selectedModel || "—";
 
+  // ── Показать диаграмму в модалке
+  const [isZoomOpen, setZoomOpen] = useState(false);
+  const openZoom = () => setZoomOpen(true);
+  const closeZoom = () => setZoomOpen(false);
+  
   // ── Preview (SVG host)
   const svgHostRef = useRef<HTMLDivElement>(null);
-  useMermaidRender(code, svgHostRef, [isLoadingModels]); // важно: зависит от загрузки моделей
+  useMermaidRender(code, svgHostRef, [isLoadingModels, isZoomOpen]);
+  // useMermaidRender(code, svgHostRef, [isLoadingModels]); // важно: зависит от загрузки моделей
 
   // ── Модель по умолчанию (если стор ещё пуст)
   const allModels = useMemo(
@@ -220,11 +226,6 @@ export default function MermindContainer() {
 
     URL.revokeObjectURL(url);
   };
-
-  // ── Показать диаграмму в модалке
-  const [isZoomOpen, setZoomOpen] = useState(false);
-  const openZoom = () => setZoomOpen(true);
-  const closeZoom = () => setZoomOpen(false);
 
   // ── Сплэш, пока ждём модели
   if (isLoadingModels) {
