@@ -12,7 +12,6 @@ function stripMermaidCommentsForRender(src: string) {
 
 declare global { interface Window { __mmdInited?: boolean } }
 
-// Простейшее определение мобилы (достаточно для нашей задачи)
 function isMobileUA() {
   if (typeof navigator === "undefined") return false;
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -31,17 +30,16 @@ async function svgToPngDataUrl(svgText: string, scale = 2): Promise<string> {
       image.src = url;
     });
 
-    // размеры из viewBox, если naturalWidth/Height не даны
     const vbMatch = svgText.match(/viewBox="([\d.\s-]+)"/i);
     let w = img.naturalWidth || 0;
     let h = img.naturalHeight || 0;
     if ((!w || !h) && vbMatch) {
-      const [ , , vw, vh ] = vbMatch[1].trim().split(/\s+/).map(Number);
+      const parts = vbMatch[1].trim().split(/\s+/).map(Number);
+      const vw = parts[2], vh = parts[3];
       if (vw > 0 && vh > 0) { w = vw; h = vh; }
     }
-    if (!w || !h) { w = 1024; h = 512; } // запасной вариант
+    if (!w || !h) { w = 1024; h = 512; }
 
-    // мягкая защита от слишком больших картинок
     const MAX = 3000;
     const s = Math.min(scale, MAX / Math.max(w, h));
 
@@ -57,7 +55,7 @@ async function svgToPngDataUrl(svgText: string, scale = 2): Promise<string> {
   }
 }
 
-// Делаем <svg> «резиновым» (для десктопа)
+// делаем <svg> «резиновым» (для десктопа)
 function normalizeSvg(svg: string) {
   return svg.replace(/<svg\b([^>]*?)>/i, (m, attrs) => {
     let a = attrs.replace(/\swidth="[^"]*"/i, "").replace(/\sheight="[^"]*"/i, "");
@@ -68,6 +66,23 @@ function normalizeSvg(svg: string) {
       a += ' style="width:100%;height:auto;display:block;"';
     }
     return `<svg${a}>`;
+  });
+}
+
+// попытаться показать SVG как <img src="data:image/svg+xml;utf8,...">
+async function tryShowSvgAsImage(host: HTMLElement, svgNormalized: string): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    const dataUrl = "data:image/svg+xml;utf8," + encodeURIComponent(svgNormalized);
+    const img = new Image();
+    img.style.width = "100%";
+    img.style.height = "auto";
+    img.style.display = "block";
+    img.alt = "diagram";
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = dataUrl;
+    host.innerHTML = "";
+    host.appendChild(img);
   });
 }
 
@@ -95,19 +110,22 @@ export function useMermaidRender(
         const { svg } = await mermaid.render(id, renderCode);
         if (cancelled || !hostRef.current) return;
 
-        host.innerHTML = "";
-
-        // 🔹 Мобила: сразу PNG (без промежуточного SVG в DOM)
+        // Мобильный путь: сначала <img src="data:svg">, если не вышло — PNG
         if (isMobileUA()) {
-          const png = await svgToPngDataUrl(normalizeSvg(svg), 2); // ретина-качество
-          if (cancelled || !hostRef.current) return;
-          hostRef.current.innerHTML =
-            `<img src="${png}" alt="diagram" style="width:100%;height:auto;display:block" />`;
+          const svgNormalized = normalizeSvg(svg);
+          const ok = await tryShowSvgAsImage(host, svgNormalized);
+          if (!ok) {
+            const png = await svgToPngDataUrl(svgNormalized, 2);
+            if (cancelled || !hostRef.current) return;
+            hostRef.current.innerHTML =
+              `<img src="${png}" alt="diagram" style="width:100%;height:auto;display:block" />`;
+          }
           return;
         }
 
-        // 🔹 Десктоп: чистый SVG
+        // Десктоп: чистый SVG
         const svgNormalized = normalizeSvg(svg);
+        host.innerHTML = "";
         host.insertAdjacentHTML("afterbegin", svgNormalized);
       } catch (e) {
         if (process.env.NODE_ENV !== "production") {
