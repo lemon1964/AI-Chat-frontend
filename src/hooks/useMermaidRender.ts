@@ -1,59 +1,18 @@
 // src/hooks/useMermaidRender.ts
 "use client";
 
-import { useEffect, RefObject } from "react";
+import { useEffect, RefObject, useState } from "react";
 
-function stripMermaidComments(src: string) {
+function stripMermaidCommentsForRender(src: string) {
   return src
     .split(/\r?\n/)
     .filter(ln => !ln.trimStart().startsWith("%%"))
     .join("\n");
 }
 
-declare global { interface Window { __mmdInited?: boolean } }
-
-// Очень простое определение мобилы
-function isMobileUA() {
-  if (typeof navigator === "undefined") return false;
-  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
-
-// Чуть «резиновее» SVG — пригодится для конвертации в PNG
-function normalizeSvg(svg: string) {
-  return svg.replace(/<svg\b([^>]*?)>/i, (m, attrs) => {
-    let a = attrs.replace(/\swidth="[^"]*"/i, "").replace(/\sheight="[^"]*"/i, "");
-    if (!/\spreserveAspectRatio=/i.test(a)) a += ' preserveAspectRatio="xMidYMid meet"';
-    return `<svg${a}>`;
-  });
-}
-
-// SVG → PNG dataURL (без изысков, максимально просто)
-async function svgToPngDataUrl(svgText: string, scale = 2): Promise<string> {
-  const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = reject;
-      image.decoding = "async";
-      image.src = url;
-    });
-
-    // размеры из viewBox (у mermaid обычно он есть)
-    const vb = svgText.match(/viewBox="([\d.\s-]+)"/i)?.[1]?.trim().split(/\s+/).map(Number) || [];
-    const w = img.naturalWidth || vb[2] || 1024;
-    const h = img.naturalHeight || vb[3] || 512;
-
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.floor(w * scale));
-    canvas.height = Math.max(1, Math.floor(h * scale));
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("no canvas 2d");
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL("image/png");
-  } finally {
-    URL.revokeObjectURL(url);
+declare global {
+  interface Window {
+    __mmdInited?: boolean;
   }
 }
 
@@ -62,59 +21,90 @@ export function useMermaidRender(
   hostRef: RefObject<HTMLDivElement | null>,
   extraDeps: unknown[] = []
 ) {
+  const [isRendering, setIsRendering] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let mermaidInstance: any = null;
 
-    (async () => {
+    const renderMermaid = async () => {
+      if (!code.trim() || !hostRef.current) return;
+
       try {
-        const host = hostRef.current;
-        if (!host) return;
+        setIsRendering(true);
+        setError(null);
 
-        const { default: mermaid } = await import("mermaid");
-        if (!window.__mmdInited) {
-          mermaid.initialize({ startOnLoad: false, securityLevel: "loose" });
-          window.__mmdInited = true;
-        }
+        // Ленивая загрузка mermaid
+        const mermaidModule = await import("mermaid");
+        mermaidInstance = mermaidModule.default;
+
+        // Переинициализация для мобильных устройств
+        mermaidInstance.initialize({
+          startOnLoad: false,
+          securityLevel: "loose",
+          theme: "default",
+          fontFamily: "sans-serif",
+          // Оптимизации для мобильных
+          flowchart: {
+            useMaxWidth: true,
+            htmlLabels: true,
+            curve: "basis"
+          }
+        });
 
         const id = `mmd-${Math.random().toString(36).slice(2)}`;
-        const renderCode = stripMermaidComments(code);
-        const { svg } = await mermaid.render(id, renderCode);
+        const renderCode = stripMermaidCommentsForRender(code);
+
+        const { svg } = await mermaidInstance.render(id, renderCode);
+
         if (cancelled || !hostRef.current) return;
 
-        host.innerHTML = "";
+        // Очистка и вставка SVG
+        hostRef.current.innerHTML = svg;
+        
+        // Применяем стили для мобильной оптимизации
+        const svgElement = hostRef.current.querySelector('svg');
+        if (svgElement) {
+          svgElement.style.maxWidth = '100%';
+          svgElement.style.height = 'auto';
+        }
 
-        // 🔴 ТУПО и НАДЁЖНО: на мобильных всегда PNG
-        if (isMobileUA()) {
-          try {
-            const png = await svgToPngDataUrl(normalizeSvg(svg), 2);
-            if (cancelled || !hostRef.current) return;
-            hostRef.current.innerHTML =
-              `<img src="${png}" alt="diagram" style="width:100%;height:auto;display:block" />`;
-            return;
-          } catch {
-            // если даже PNG не собрался — даём ссылку на SVG
-            const href = "data:image/svg+xml;utf8," + encodeURIComponent(svg);
-            hostRef.current.innerHTML =
-              `<a href="${href}" download="diagram.svg" class="underline text-blue-600">Download SVG</a>`;
-            return;
+      } catch (e) {
+        if (!cancelled) {
+          console.error("[mermaid] render failed:", e);
+          setError(e instanceof Error ? e.message : "Ошибка рендеринга");
+          
+          // Показываем сообщение об ошибке
+          if (hostRef.current) {
+            hostRef.current.innerHTML = `
+              <div style="padding: 20px; text-align: center; color: #666;">
+                <p>Не удалось отобразить диаграмму</p>
+                <small>${e instanceof Error ? e.message : 'Попробуйте обновить страницу'}</small>
+              </div>
+            `;
           }
         }
-
-        // 🟢 Десктоп — как было: вставляем SVG
-        host.insertAdjacentHTML("afterbegin", svg);
-      } catch (e) {
-        if (process.env.NODE_ENV !== "production") {
-          console.warn("[mermaid] render failed:", e);
+      } finally {
+        if (!cancelled) {
+          setIsRendering(false);
         }
-        // ничего не трогаем: контейнер/страница всё равно остаются живыми
       }
-    })();
+    };
 
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Задержка для стабильности на мобильных
+    const timer = setTimeout(renderMermaid, 100);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, hostRef, ...extraDeps]);
-}
 
+  return { isRendering, error };
+}
 
 
 // // src/hooks/useMermaidRender.ts

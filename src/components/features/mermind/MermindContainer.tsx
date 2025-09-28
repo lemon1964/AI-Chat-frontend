@@ -67,10 +67,11 @@ export default function MermindContainer() {
   const [isZoomOpen, setZoomOpen] = useState(false);
   const openZoom = () => setZoomOpen(true);
   const closeZoom = () => setZoomOpen(false);
-  
+
   // ── Preview (SVG host)
   const svgHostRef = useRef<HTMLDivElement>(null);
   useMermaidRender(code, svgHostRef, [isLoadingModels, isZoomOpen]);
+  // useMermaidRender(code, svgHostRef, [isLoadingModels, isZoomOpen]);
   // useMermaidRender(code, svgHostRef, [isLoadingModels]); // важно: зависит от загрузки моделей
 
   // ── Модель по умолчанию (если стор ещё пуст)
