@@ -3,7 +3,7 @@
 
 import { useEffect, RefObject } from "react";
 
-function stripMermaidCommentsForRender(src: string) {
+function stripMermaidComments(src: string) {
   return src
     .split(/\r?\n/)
     .filter(ln => !ln.trimStart().startsWith("%%"))
@@ -12,12 +12,22 @@ function stripMermaidCommentsForRender(src: string) {
 
 declare global { interface Window { __mmdInited?: boolean } }
 
+// Очень простое определение мобилы
 function isMobileUA() {
   if (typeof navigator === "undefined") return false;
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
-// SVG → PNG (dataURL) через canvas
+// Чуть «резиновее» SVG — пригодится для конвертации в PNG
+function normalizeSvg(svg: string) {
+  return svg.replace(/<svg\b([^>]*?)>/i, (m, attrs) => {
+    let a = attrs.replace(/\swidth="[^"]*"/i, "").replace(/\sheight="[^"]*"/i, "");
+    if (!/\spreserveAspectRatio=/i.test(a)) a += ' preserveAspectRatio="xMidYMid meet"';
+    return `<svg${a}>`;
+  });
+}
+
+// SVG → PNG dataURL (без изысков, максимально просто)
 async function svgToPngDataUrl(svgText: string, scale = 2): Promise<string> {
   const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -30,60 +40,21 @@ async function svgToPngDataUrl(svgText: string, scale = 2): Promise<string> {
       image.src = url;
     });
 
-    const vbMatch = svgText.match(/viewBox="([\d.\s-]+)"/i);
-    let w = img.naturalWidth || 0;
-    let h = img.naturalHeight || 0;
-    if ((!w || !h) && vbMatch) {
-      const parts = vbMatch[1].trim().split(/\s+/).map(Number);
-      const vw = parts[2], vh = parts[3];
-      if (vw > 0 && vh > 0) { w = vw; h = vh; }
-    }
-    if (!w || !h) { w = 1024; h = 512; }
-
-    const MAX = 3000;
-    const s = Math.min(scale, MAX / Math.max(w, h));
+    // размеры из viewBox (у mermaid обычно он есть)
+    const vb = svgText.match(/viewBox="([\d.\s-]+)"/i)?.[1]?.trim().split(/\s+/).map(Number) || [];
+    const w = img.naturalWidth || vb[2] || 1024;
+    const h = img.naturalHeight || vb[3] || 512;
 
     const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.floor(w * s));
-    canvas.height = Math.max(1, Math.floor(h * s));
+    canvas.width = Math.max(1, Math.floor(w * scale));
+    canvas.height = Math.max(1, Math.floor(h * scale));
     const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Canvas 2D context not available");
+    if (!ctx) throw new Error("no canvas 2d");
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     return canvas.toDataURL("image/png");
   } finally {
     URL.revokeObjectURL(url);
   }
-}
-
-// делаем <svg> «резиновым» (для десктопа)
-function normalizeSvg(svg: string) {
-  return svg.replace(/<svg\b([^>]*?)>/i, (m, attrs) => {
-    let a = attrs.replace(/\swidth="[^"]*"/i, "").replace(/\sheight="[^"]*"/i, "");
-    if (!/\spreserveAspectRatio=/i.test(a)) a += ' preserveAspectRatio="xMidYMid meet"';
-    if (/\sstyle="/i.test(a)) {
-      a = a.replace(/\sstyle="([^"]*)"/i, (_m: unknown, s: unknown) => ` style="${s};width:100%;height:auto;display:block;"`);
-    } else {
-      a += ' style="width:100%;height:auto;display:block;"';
-    }
-    return `<svg${a}>`;
-  });
-}
-
-// попытаться показать SVG как <img src="data:image/svg+xml;utf8,...">
-async function tryShowSvgAsImage(host: HTMLElement, svgNormalized: string): Promise<boolean> {
-  return new Promise<boolean>((resolve) => {
-    const dataUrl = "data:image/svg+xml;utf8," + encodeURIComponent(svgNormalized);
-    const img = new Image();
-    img.style.width = "100%";
-    img.style.height = "auto";
-    img.style.display = "block";
-    img.alt = "diagram";
-    img.onload = () => resolve(true);
-    img.onerror = () => resolve(false);
-    img.src = dataUrl;
-    host.innerHTML = "";
-    host.appendChild(img);
-  });
 }
 
 export function useMermaidRender(
@@ -106,31 +77,36 @@ export function useMermaidRender(
         }
 
         const id = `mmd-${Math.random().toString(36).slice(2)}`;
-        const renderCode = stripMermaidCommentsForRender(code);
+        const renderCode = stripMermaidComments(code);
         const { svg } = await mermaid.render(id, renderCode);
         if (cancelled || !hostRef.current) return;
 
-        // Мобильный путь: сначала <img src="data:svg">, если не вышло — PNG
+        host.innerHTML = "";
+
+        // 🔴 ТУПО и НАДЁЖНО: на мобильных всегда PNG
         if (isMobileUA()) {
-          const svgNormalized = normalizeSvg(svg);
-          const ok = await tryShowSvgAsImage(host, svgNormalized);
-          if (!ok) {
-            const png = await svgToPngDataUrl(svgNormalized, 2);
+          try {
+            const png = await svgToPngDataUrl(normalizeSvg(svg), 2);
             if (cancelled || !hostRef.current) return;
             hostRef.current.innerHTML =
               `<img src="${png}" alt="diagram" style="width:100%;height:auto;display:block" />`;
+            return;
+          } catch {
+            // если даже PNG не собрался — даём ссылку на SVG
+            const href = "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+            hostRef.current.innerHTML =
+              `<a href="${href}" download="diagram.svg" class="underline text-blue-600">Download SVG</a>`;
+            return;
           }
-          return;
         }
 
-        // Десктоп: чистый SVG
-        const svgNormalized = normalizeSvg(svg);
-        host.innerHTML = "";
-        host.insertAdjacentHTML("afterbegin", svgNormalized);
+        // 🟢 Десктоп — как было: вставляем SVG
+        host.insertAdjacentHTML("afterbegin", svg);
       } catch (e) {
         if (process.env.NODE_ENV !== "production") {
           console.warn("[mermaid] render failed:", e);
         }
+        // ничего не трогаем: контейнер/страница всё равно остаются живыми
       }
     })();
 
@@ -138,6 +114,7 @@ export function useMermaidRender(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, hostRef, ...extraDeps]);
 }
+
 
 
 // // src/hooks/useMermaidRender.ts
