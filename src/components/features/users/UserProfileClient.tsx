@@ -51,7 +51,7 @@ export default function UserProfileClient() {
 
   useEffect(() => {
     if (userData?.name) {
-      const isPromo = userData.name.toLowerCase() === "king";
+      const isPromo = userData.name.toLowerCase() === "gudvin";
       localStorage.setItem("isPromoUser", JSON.stringify(isPromo));
     }
   }, [userData]);

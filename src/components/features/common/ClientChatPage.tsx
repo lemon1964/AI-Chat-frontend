@@ -22,8 +22,42 @@ export default function ClientChatPage({ session }: { session: Session | null })
   const isWakingUp = useBackendWakeUp();
   const { isLoadingModels } = useModels(); // Модели и флаги авторизации подгружаются сразу
   const tier = useSelector((s: RootState) => s.flags.tier);
-  useSyncRateTier(tier);  // синхронизируем окно лимитов с оплатой
+  useSyncRateTier(tier); // синхронизируем окно лимитов с оплатой
 
+  // // где у вас автологин
+  // const AUTO_LOGIN_KEY = "auto-guest-login-v2"; // <- новый ключ
+  // const AUTO_LOGIN_TTL_MS = 7 * 24 * 3600_000; // 7 дней (или меньше)
+
+  // useEffect(() => {
+  //   const raw = localStorage.getItem(AUTO_LOGIN_KEY);
+  //   const justSignedOutAt = parseInt(sessionStorage.getItem("justSignedOutAt") || "0", 10);
+  //   const recentlySignedOut = Date.now() - justSignedOutAt < 5000;
+
+  //   let alreadyAutoLoggedIn = false;
+  //   if (raw) {
+  //     try {
+  //       const { at } = JSON.parse(raw) as { at: number };
+  //       alreadyAutoLoggedIn = Date.now() - at < AUTO_LOGIN_TTL_MS;
+  //     } catch {
+  //       /* ignore */
+  //     }
+  //   }
+
+  //   if (!session && !alreadyAutoLoggedIn && !recentlySignedOut) {
+  //     signIn("credentials", {
+  //       email: "admin@admin.ru",
+  //       password: "admin",
+  //       redirect: false,
+  //     })
+  //       .then(() => {
+  //         localStorage.setItem(AUTO_LOGIN_KEY, JSON.stringify({ at: Date.now() }));
+  //       })
+  //       .catch(() => {
+  //         // на всякий случай очищаем флаг, чтобы не залипало при ошибках
+  //         localStorage.removeItem(AUTO_LOGIN_KEY);
+  //       });
+  //   }
+  // }, [AUTO_LOGIN_TTL_MS, session]);
 
   useEffect(() => {
     const alreadyAutoLoggedIn = localStorage.getItem("auto-guest-login");
@@ -33,7 +67,7 @@ export default function ClientChatPage({ session }: { session: Session | null })
     if (!session && !alreadyAutoLoggedIn && !recentlySignedOut) {
       signIn("credentials", {
         email: "admin@admin.ru",
-        password: "R12345678r",
+        password: "admin",
         redirect: false,
       }).then(() => {
         localStorage.setItem("auto-guest-login", "true");
