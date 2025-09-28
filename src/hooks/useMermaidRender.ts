@@ -4,14 +4,15 @@
 import { useEffect, RefObject, useState } from "react";
 
 function stripMermaidCommentsForRender(src: string) {
-  return src
-    .split(/\r?\n/)
-    .filter(ln => !ln.trimStart().startsWith("%%"))
-    .join("\n");
+  return src.split(/\r?\n/).filter(ln => !ln.trimStart().startsWith("%%")).join("\n");
 }
 
 declare global {
-  interface Window { __mmdInited?: boolean }
+  interface Window {
+    __mmdInited?: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mermaid?: any; // <— добавили глобал для CDN-скрипта
+  }
 }
 
 export function useMermaidRender(
@@ -25,18 +26,8 @@ export function useMermaidRender(
   useEffect(() => {
     let cancelled = false;
 
-    const log = (...args: unknown[]) => {
-       
-      console.log("[mermind/render]", ...args);
-    };
-    // const warn = (...args: unknown[]) => {
-    //   // eslint-disable-next-line no-console
-    //   console.warn("[mermind/render]", ...args);
-    // };
-    const err = (...args: unknown[]) => {
-       
-      console.error("[mermind/render]", ...args);
-    };
+    const log = (...a: unknown[]) => console.log("[mermind/render]", ...a);
+    const err = (...a: unknown[]) => console.error("[mermind/render]", ...a);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async function importMermaidWithRetry(): Promise<any | null> {
@@ -46,14 +37,11 @@ export function useMermaidRender(
         return m?.default ?? m;
       } catch (e1) {
         err("import mermaid failed #1:", e1);
-        // типичный признак: "Loading chunk XXXX failed"
         const msg = String((e1 as Error)?.message || e1);
-        const looksLikeChunkFail =
-          /Loading chunk/i.test(msg) || /ChunkLoadError/i.test(msg);
+        const looksLikeChunkFail = /Loading chunk|ChunkLoadError/i.test(msg);
 
         if (!looksLikeChunkFail) return null;
 
-        // мягкий одноразовый ретрай (часто «пробивает» мобильные глитчи сети)
         await new Promise(r => setTimeout(r, 250));
         try {
           log("import mermaid: retry #2");
@@ -71,9 +59,16 @@ export function useMermaidRender(
 
       setIsRendering(true);
       setError(null);
-      log("start render, ua=", typeof navigator !== "undefined" ? navigator.userAgent : "n/a");
+      log("start render");
 
-      const mod = await importMermaidWithRetry();
+      let mod = await importMermaidWithRetry();
+
+      // 🔥 Fallback: если импорт не вышел — пробуем глобальный mermaid из CDN
+      if (!mod && typeof window !== "undefined" && window.mermaid) {
+        log("using window.mermaid (CDN fallback)");
+        mod = window.mermaid;
+      }
+
       if (!mod) {
         setError("Не удалось загрузить модуль диаграмм (mermaid). Попробуйте обновить страницу.");
         if (!cancelled && hostRef.current) {
@@ -91,14 +86,10 @@ export function useMermaidRender(
           mod.initialize({ startOnLoad: false, securityLevel: "loose" });
           window.__mmdInited = true;
           log("mermaid initialized");
-        } else {
-          log("mermaid already initialized");
         }
 
         const id = `mmd-${Math.random().toString(36).slice(2)}`;
         const renderCode = stripMermaidCommentsForRender(code);
-        log("render call (len):", renderCode.length);
-
         const { svg } = await mod.render(id, renderCode);
         if (cancelled || !hostRef.current) return;
 
@@ -125,18 +116,14 @@ export function useMermaidRender(
       }
     }
 
-    // небольшая задержка помогает на мобильных после навигации
     const t = setTimeout(render, 100);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
+    return () => { clearTimeout(t); cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, hostRef, ...extraDeps]);
 
   return { isRendering, error };
 }
+
 
 // // src/hooks/useMermaidRender.ts
 // "use client";
