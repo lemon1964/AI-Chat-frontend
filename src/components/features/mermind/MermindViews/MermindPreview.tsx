@@ -19,7 +19,8 @@ export default function MermindPreview({
 
       <div className="border rounded p-4 bg-white">
         <div className="flex justify-center">
-          <div ref={svgHostRef} className="w-full min-h-[180px] overflow-auto" />
+        <div ref={svgHostRef} className="w-full min-h-[180px] overflow-auto" style={{ WebkitOverflowScrolling: 'touch' }} />
+          {/* <div ref={svgHostRef} className="w-full min-h-[180px] overflow-auto" /> */}
         </div>
 
         <p className="mt-2 text-xs bg-white text-gray-700 font-mono flex items-center gap-1">
