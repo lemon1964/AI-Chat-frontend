@@ -26,7 +26,7 @@ import { AppDispatch, RootState } from "@/store/store";
 import { modelActions } from "@/reducers/modelReducer";
 import { showNotification } from "@/reducers/notificationReducer";
 import apiClient from "@/services/authClientService";
-import { audioService } from "@/services/audioService";
+// import { audioService } from "@/services/audioService";
 
 import { TYPES, TYPE_LABEL } from "@/data/mermindTypes";
 
@@ -81,10 +81,10 @@ export default function MermindContainer() {
   const isReady = flags.loaded;
   const { isAllowed, mark } = useRateLimit(flags.limits || undefined);
 
-  useEffect(() => {
-    audioService.playMusic("/music/track.mp3");
-    return () => audioService.stopMusic();
-  }, []);
+  // useEffect(() => {
+  //   audioService.playMusic("/music/track.mp3");
+  //   return () => audioService.stopMusic();
+  // }, []);
 
   useEffect(() => {
     if (!selectedModel && allModels.length) {
