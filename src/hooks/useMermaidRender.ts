@@ -12,14 +12,17 @@ function stripMermaidCommentsForRender(src: string) {
 
 declare global { interface Window { __mmdInited?: boolean } }
 
+// Простейшее определение мобилы (достаточно для нашей задачи)
+function isMobileUA() {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 // SVG → PNG (dataURL) через canvas
 async function svgToPngDataUrl(svgText: string, scale = 2): Promise<string> {
-  // создаём Blob из SVG
   const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
   const url = URL.createObjectURL(blob);
-
   try {
-    // грузим в Image
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
       const image = new Image();
       image.onload = () => resolve(image);
@@ -28,32 +31,25 @@ async function svgToPngDataUrl(svgText: string, scale = 2): Promise<string> {
       image.src = url;
     });
 
-    // подстраиваем размер по viewBox
-    // если у <svg> нет явных ширины/высоты — читаем из viewBox
-    // (большинство версий mermaid их ставят)
+    // размеры из viewBox, если naturalWidth/Height не даны
     const vbMatch = svgText.match(/viewBox="([\d.\s-]+)"/i);
     let w = img.naturalWidth || 0;
     let h = img.naturalHeight || 0;
-
     if ((!w || !h) && vbMatch) {
-      const vb = vbMatch[1].trim().split(/\s+/).map(Number);
-      if (vb.length === 4 && vb[2] > 0 && vb[3] > 0) {
-        w = vb[2];
-        h = vb[3];
-      }
+      const [ , , vw, vh ] = vbMatch[1].trim().split(/\s+/).map(Number);
+      if (vw > 0 && vh > 0) { w = vw; h = vh; }
     }
-    if (!w || !h) {
-      // запасной вариант
-      w = 1024;
-      h = 512;
-    }
+    if (!w || !h) { w = 1024; h = 512; } // запасной вариант
+
+    // мягкая защита от слишком больших картинок
+    const MAX = 3000;
+    const s = Math.min(scale, MAX / Math.max(w, h));
 
     const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.floor(w * scale));
-    canvas.height = Math.max(1, Math.floor(h * scale));
+    canvas.width = Math.max(1, Math.floor(w * s));
+    canvas.height = Math.max(1, Math.floor(h * s));
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas 2D context not available");
-
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     return canvas.toDataURL("image/png");
   } finally {
@@ -61,7 +57,7 @@ async function svgToPngDataUrl(svgText: string, scale = 2): Promise<string> {
   }
 }
 
-// нормализуем <svg> для «резиновой» вёрстки
+// Делаем <svg> «резиновым» (для десктопа)
 function normalizeSvg(svg: string) {
   return svg.replace(/<svg\b([^>]*?)>/i, (m, attrs) => {
     let a = attrs.replace(/\swidth="[^"]*"/i, "").replace(/\sheight="[^"]*"/i, "");
@@ -85,6 +81,9 @@ export function useMermaidRender(
 
     (async () => {
       try {
+        const host = hostRef.current;
+        if (!host) return;
+
         const { default: mermaid } = await import("mermaid");
         if (!window.__mmdInited) {
           mermaid.initialize({ startOnLoad: false, securityLevel: "loose" });
@@ -96,28 +95,24 @@ export function useMermaidRender(
         const { svg } = await mermaid.render(id, renderCode);
         if (cancelled || !hostRef.current) return;
 
-        // 1) пробуем SVG
-        const svgNormalized = normalizeSvg(svg);
-        const host = hostRef.current;
         host.innerHTML = "";
-        host.insertAdjacentHTML("afterbegin", svgNormalized);
 
-        // 2) проверяем, действительно ли оно «проявилось»
-        const svgEl = host.querySelector("svg");
-        const rect = svgEl?.getBoundingClientRect();
-        const visible = !!rect && rect.width > 1 && rect.height > 1;
-
-        if (!visible) {
-          // 3) фолбэк: PNG
-          const dataUrl = await svgToPngDataUrl(svgNormalized, 2); // retina-качество
+        // 🔹 Мобила: сразу PNG (без промежуточного SVG в DOM)
+        if (isMobileUA()) {
+          const png = await svgToPngDataUrl(normalizeSvg(svg), 2); // ретина-качество
           if (cancelled || !hostRef.current) return;
-          hostRef.current.innerHTML = `<img src="${dataUrl}" alt="diagram" style="width:100%;height:auto;display:block" />`;
+          hostRef.current.innerHTML =
+            `<img src="${png}" alt="diagram" style="width:100%;height:auto;display:block" />`;
+          return;
         }
+
+        // 🔹 Десктоп: чистый SVG
+        const svgNormalized = normalizeSvg(svg);
+        host.insertAdjacentHTML("afterbegin", svgNormalized);
       } catch (e) {
         if (process.env.NODE_ENV !== "production") {
           console.warn("[mermaid] render failed:", e);
         }
-        // на всякий случай не трогаем текущий DOM — кнопка/ошибка от контейнера останется
       }
     })();
 
