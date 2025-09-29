@@ -1,5 +1,5 @@
 // src/components/features/mermind/MermindToolbar.tsx
-import { wrapModelId } from "../_wrapModelId";
+import { wrapModelId } from "@ui/common/wrapModelId";
 
 type Props = {
   allModels: Array<{ id: string; name: string }>;

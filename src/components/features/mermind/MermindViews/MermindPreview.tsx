@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { wrapModelId } from "../_wrapModelId";
+import { wrapModelId } from "@ui/common/wrapModelId";
 import { extractMermaidCommentLines } from "@/utils/mermaidNotes";
 
 export default function MermindPreview({
