@@ -4,199 +4,110 @@
 import { useEffect, RefObject } from "react";
 
 function stripMermaidCommentsForRender(src: string) {
-  return src
-    .split(/\r?\n/)
-    .filter(ln => !ln.trimStart().startsWith("%%"))
-    .join("\n");
+  return src.split(/\r?\n/).filter(ln => !ln.trimStart().startsWith("%%")).join("\n");
 }
+
+type MermaidAPI = {
+  initialize(cfg: unknown): void;
+  render(id: string, code: string): Promise<{ svg: string }>;
+  parse(code: string): Promise<void> | void;
+  parseError?: (err: unknown, hash?: unknown) => void;
+};
 
 declare global {
   interface Window {
     __mmdInited?: boolean;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mermaid?: any; // fallback из CDN
+    mermaid?: MermaidAPI; // fallback из CDN
   }
 }
 
+async function waitForMermaidFromCDN(ms = 800): Promise<MermaidAPI | null> {
+  const deadline = Date.now() + ms;
+  while (Date.now() < deadline) {
+    if (typeof window !== "undefined" && window.mermaid) return window.mermaid;
+    await new Promise(r => setTimeout(r, 50));
+  }
+  return null;
+}
+
+/**
+ * depsKey — любой маркер (булевы/числа/строки/JSON.stringify([...])).
+ * Меняем его, когда нужно перерендерить диаграмму по внешним условиям.
+ */
 export function useMermaidRender(
   code: string,
   hostRef: RefObject<HTMLDivElement | null>,
-  extraDeps: unknown[] = []
+  depsKey?: unknown
 ) {
   useEffect(() => {
     let cancelled = false;
 
+    // фикс #1: работаем с «снимком» текущего элемента
+    const hostEl = hostRef.current;
+
     (async () => {
       try {
-        // 1) пробуем динамический импорт
-        let mermaid;
+        // если контейнера нет — выходим
+        if (!hostEl) return;
+
+        // 1) динамический импорт → иначе ждём CDN-глобал
+        let mermaid: MermaidAPI | null = null;
         try {
           const mod = await import("mermaid");
-          mermaid = mod?.default ?? mod;
+          mermaid = (mod?.default ?? mod) as unknown as MermaidAPI;
         } catch {
-          // 2) fallback: глобальный mermaid от CDN-скрипта
-          mermaid = typeof window !== "undefined" ? window.mermaid : null;
+          mermaid = await waitForMermaidFromCDN();
           if (!mermaid) throw new Error("Mermaid not available");
         }
 
+        // 2) init один раз + гасим глобальный parseError
         if (!window.__mmdInited) {
           mermaid.initialize({ startOnLoad: false, securityLevel: "loose" });
+          mermaid.parseError = () => {};
           window.__mmdInited = true;
         }
 
         const id = `mmd-${Math.random().toString(36).slice(2)}`;
         const renderCode = stripMermaidCommentsForRender(code);
-        const { svg } = await mermaid.render(id, renderCode);
 
-        if (cancelled || !hostRef.current) return;
-        hostRef.current.innerHTML = "";
-        hostRef.current.insertAdjacentHTML("afterbegin", svg);
-      } catch (e) {
-        if (process.env.NODE_ENV !== "production") {
-          console.warn("[mermaid] render failed:", e);
+        // 3) предварительная валидация — показываем локальное сообщение
+        try {
+          await mermaid.parse(renderCode);
+        } catch (e) {
+          if (!cancelled && hostEl) {
+            hostEl.innerHTML =
+              `<div style="padding:12px;text-align:center;color:#b91c1c;background:#fee2e2;border-radius:6px;">
+                 Ошибка в диаграмме: ${(e as Error)?.message || "Syntax error"}
+               </div>`;
+          }
+          return;
         }
-        // не трогаем DOM — ваш контейнер сам показывает сообщение об ошибке
+
+        // 4) рендер
+        const { svg } = await mermaid.render(id, renderCode);
+        if (cancelled || !hostEl) return;
+
+        hostEl.innerHTML = "";
+        hostEl.insertAdjacentHTML("afterbegin", svg);
+      } catch {
+        if (!cancelled && hostEl) {
+          hostEl.innerHTML =
+            `<div style="padding:12px;text-align:center;color:#6b7280;">
+               Не удалось отрисовать диаграмму.
+             </div>`;
+        }
       }
     })();
 
     return () => {
       cancelled = true;
+      // фикс #1: чистим именно тот DOM-узел, который был в этом эффекте
+      if (hostEl) hostEl.innerHTML = "";
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, hostRef, ...extraDeps]);
+
+    // фикс #2: без спреда; ref сам по себе стабилен, его в deps не кладём
+  }, [code, depsKey, hostRef]); // ← только код диаграммы и внешний «ключ»
 }
-
-
-
-
-
-
-// // src/hooks/useMermaidRender.ts
-// "use client";
-
-// import { useEffect, RefObject, useState } from "react";
-
-// function stripMermaidCommentsForRender(src: string) {
-//   return src.split(/\r?\n/).filter(ln => !ln.trimStart().startsWith("%%")).join("\n");
-// }
-
-// declare global {
-//   interface Window {
-//     __mmdInited?: boolean;
-//     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-//     mermaid?: any; // <— добавили глобал для CDN-скрипта
-//   }
-// }
-
-// export function useMermaidRender(
-//   code: string,
-//   hostRef: RefObject<HTMLDivElement | null>,
-//   extraDeps: unknown[] = []
-// ) {
-//   const [isRendering, setIsRendering] = useState(false);
-//   const [error, setError] = useState<string | null>(null);
-
-//   useEffect(() => {
-//     let cancelled = false;
-
-//     const log = (...a: unknown[]) => console.log("[mermind/render]", ...a);
-//     const err = (...a: unknown[]) => console.error("[mermind/render]", ...a);
-
-//     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-//     async function importMermaidWithRetry(): Promise<any | null> {
-//       try {
-//         log("import mermaid: try #1");
-//         const m = await import("mermaid");
-//         return m?.default ?? m;
-//       } catch (e1) {
-//         err("import mermaid failed #1:", e1);
-//         const msg = String((e1 as Error)?.message || e1);
-//         const looksLikeChunkFail = /Loading chunk|ChunkLoadError/i.test(msg);
-
-//         if (!looksLikeChunkFail) return null;
-
-//         await new Promise(r => setTimeout(r, 250));
-//         try {
-//           log("import mermaid: retry #2");
-//           const m2 = await import("mermaid");
-//           return m2?.default ?? m2;
-//         } catch (e2) {
-//           err("import mermaid failed #2:", e2);
-//           return null;
-//         }
-//       }
-//     }
-
-//     async function render() {
-//       if (!code.trim() || !hostRef.current) return;
-
-//       setIsRendering(true);
-//       setError(null);
-//       log("start render");
-
-//       let mod = await importMermaidWithRetry();
-
-//       // 🔥 Fallback: если импорт не вышел — пробуем глобальный mermaid из CDN
-//       if (!mod && typeof window !== "undefined" && window.mermaid) {
-//         log("using window.mermaid (CDN fallback)");
-//         mod = window.mermaid;
-//       }
-
-//       if (!mod) {
-//         setError("Не удалось загрузить модуль диаграмм (mermaid). Попробуйте обновить страницу.");
-//         if (!cancelled && hostRef.current) {
-//           hostRef.current.innerHTML =
-//             `<div style="padding:16px;text-align:center;color:#666;">
-//                Не удалось загрузить графический модуль.<br/>
-//                <small>Попробуйте обновить страницу.</small>
-//              </div>`;
-//         }
-//         return;
-//       }
-
-//       try {
-//         if (!window.__mmdInited) {
-//           mod.initialize({ startOnLoad: false, securityLevel: "loose" });
-//           window.__mmdInited = true;
-//           log("mermaid initialized");
-//         }
-
-//         const id = `mmd-${Math.random().toString(36).slice(2)}`;
-//         const renderCode = stripMermaidCommentsForRender(code);
-//         const { svg } = await mod.render(id, renderCode);
-//         if (cancelled || !hostRef.current) return;
-
-//         hostRef.current.innerHTML = svg;
-//         const svgEl = hostRef.current.querySelector("svg") as SVGSVGElement | null;
-//         if (svgEl) {
-//           svgEl.style.maxWidth = "100%";
-//           svgEl.style.height = "auto";
-//           svgEl.style.display = "block";
-//         }
-//         log("render ok");
-//       } catch (e) {
-//         err("render exception:", e);
-//         setError((e as Error)?.message || "Ошибка рендеринга");
-//         if (!cancelled && hostRef.current) {
-//           hostRef.current.innerHTML =
-//             `<div style="padding:16px;text-align:center;color:#666;">
-//                Не удалось отрисовать диаграмму.<br/>
-//                <small>${(e as Error)?.message ?? ""}</small>
-//              </div>`;
-//         }
-//       } finally {
-//         if (!cancelled) setIsRendering(false);
-//       }
-//     }
-
-//     const t = setTimeout(render, 100);
-//     return () => { clearTimeout(t); cancelled = true; };
-//     // eslint-disable-next-line react-hooks/exhaustive-deps
-//   }, [code, hostRef, ...extraDeps]);
-
-//   return { isRendering, error };
-// }
-
 
 
 
@@ -215,6 +126,8 @@ export function useMermaidRender(
 // declare global {
 //   interface Window {
 //     __mmdInited?: boolean;
+//     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+//     mermaid?: any; // fallback из CDN
 //   }
 // }
 
@@ -228,10 +141,17 @@ export function useMermaidRender(
 
 //     (async () => {
 //       try {
-//         // 💡 Ленивая загрузка модуля
-//         const { default: mermaid } = await import("mermaid");
+//         // 1) пробуем динамический импорт
+//         let mermaid;
+//         try {
+//           const mod = await import("mermaid");
+//           mermaid = mod?.default ?? mod;
+//         } catch {
+//           // 2) fallback: глобальный mermaid от CDN-скрипта
+//           mermaid = typeof window !== "undefined" ? window.mermaid : null;
+//           if (!mermaid) throw new Error("Mermaid not available");
+//         }
 
-//         // 💡 Инициализируем только один раз (и только на клиенте)
 //         if (!window.__mmdInited) {
 //           mermaid.initialize({ startOnLoad: false, securityLevel: "loose" });
 //           window.__mmdInited = true;
@@ -239,17 +159,16 @@ export function useMermaidRender(
 
 //         const id = `mmd-${Math.random().toString(36).slice(2)}`;
 //         const renderCode = stripMermaidCommentsForRender(code);
-
 //         const { svg } = await mermaid.render(id, renderCode);
 
 //         if (cancelled || !hostRef.current) return;
 //         hostRef.current.innerHTML = "";
 //         hostRef.current.insertAdjacentHTML("afterbegin", svg);
 //       } catch (e) {
-//         // Не трогаем DOM, если не удалось отрендерить — контейнер сам покажет сообщение
 //         if (process.env.NODE_ENV !== "production") {
 //           console.warn("[mermaid] render failed:", e);
 //         }
+//         // не трогаем DOM — ваш контейнер сам показывает сообщение об ошибке
 //       }
 //     })();
 
@@ -259,4 +178,3 @@ export function useMermaidRender(
 //     // eslint-disable-next-line react-hooks/exhaustive-deps
 //   }, [code, hostRef, ...extraDeps]);
 // }
-

@@ -70,7 +70,9 @@ export default function MermindContainer() {
 
   // ── Preview (SVG host)
   const svgHostRef = useRef<HTMLDivElement>(null);
-  useMermaidRender(code, svgHostRef, [isLoadingModels, isZoomOpen]);
+  const depsKey = `${isLoadingModels}-${isZoomOpen}`; // или JSON.stringify(...)
+  useMermaidRender(code, svgHostRef, depsKey);
+  // useMermaidRender(code, svgHostRef, [isLoadingModels, isZoomOpen]);
 
   // ── Модель по умолчанию (если стор ещё пуст)
   const allModels = useMemo(
