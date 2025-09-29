@@ -157,13 +157,13 @@ export default function MermindLibraryModal({
                   {editingId === d.id ? (
                     <div className="flex flex-col sm:flex-row gap-2">
                       <input
-                        className="border rounded px-2 py-1 flex-1"
+                        className="border rounded px-2 py-1 flex-1 text-gray-500"
                         value={editingTitle}
                         onChange={e => setEditingTitle(e.target.value)}
                         placeholder="Название"
                       />
                       <input
-                        className="border rounded px-2 py-1 flex-1"
+                        className="border rounded px-2 py-1 flex-1 text-gray-500"
                         value={editingTags}
                         onChange={e => setEditingTags(e.target.value)}
                         placeholder="Теги (через запятую)"
