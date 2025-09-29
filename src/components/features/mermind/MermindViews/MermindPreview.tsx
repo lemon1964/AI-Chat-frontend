@@ -15,7 +15,7 @@ export default function MermindPreview({
 
   return (
     <>
-      <h2 className="text-xl font-semibold mb-3">Предпросмотр</h2>
+      <h2 className="text-xl text-white font-semibold mb-3">Предпросмотр</h2>
 
       <div className="border rounded p-4 bg-white">
         <div className="flex justify-center">

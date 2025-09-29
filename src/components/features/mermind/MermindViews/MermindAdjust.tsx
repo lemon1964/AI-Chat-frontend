@@ -13,7 +13,7 @@ export default function MermindAdjust({
   }) {
     return (
       <div className="mt-4">
-        <label className="block text-sm font-medium mb-1">Уточнение к диаграмме</label>
+        <label className="block text-sm text-white font-medium mb-1">Уточнение к диаграмме</label>
         <textarea
           className="w-full h-24 p-3 border rounded"
           placeholder="Например: добавь вебхук от Юкассы к бэкенду…"

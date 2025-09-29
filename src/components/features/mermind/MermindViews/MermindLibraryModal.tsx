@@ -150,7 +150,7 @@ export default function MermindLibraryModal({
             {items.map(d => (
               <li
                 key={d.id}
-                className="py-2 grid grid-cols-1 sm:grid-cols-[1fr_auto] items-start gap-2 sm:gap-4"
+                className="py-2 grid grid-cols-1 sm:grid-cols-[1fr_auto] items-start gap-2 sm:gap-4 text-white"
               >
                 {/* Левая колонка: текст */}
                 <div className="min-w-0">

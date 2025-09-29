@@ -79,7 +79,7 @@ export default function UserProfileClient() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden bg-black">
       <div id="stars" className="absolute inset-0"></div>
       <div id="stars2" className="absolute inset-0"></div>
       <div id="stars3" className="absolute inset-0"></div>
@@ -101,8 +101,8 @@ export default function UserProfileClient() {
           {localizationService.get("YourProfile")}
         </h1>
 
-        <div className="mt-4 p-6 rounded-2xl shadow-xl max-w-md">
-          {/* <div className="mt-4 bg-gray-900 bg-opacity-50 p-6 rounded-2xl shadow-xl max-w-md"> */}
+        <div className="mt-4 p-6 bg-opacity-50 rounded-2xl shadow-xl max-w-md">
+        {/* <div className="mt-4 bg-gray-900 bg-opacity-50 p-6 rounded-2xl shadow-xl max-w-md"> */}
           <p>
             📧 <strong className="text-gray-100">Email:</strong> {userData.email}
           </p>
