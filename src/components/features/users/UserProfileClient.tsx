@@ -75,7 +75,7 @@ export default function UserProfileClient() {
   };
 
   if (!userData) {
-    return <div className="p-8">{localizationService.get("LoadingProfile")}</div>;
+    return <div className="p-8 bg-black">{localizationService.get("LoadingProfile")}</div>;
   }
 
   return (

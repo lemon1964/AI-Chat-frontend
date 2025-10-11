@@ -231,7 +231,7 @@ export default function MermindContainer() {
   }
 
   return (
-    <>
+    <div className="bg-black">
       <Notification />
 
       {/* Крошка навигации — единый стиль, как в чате */}
@@ -302,6 +302,7 @@ export default function MermindContainer() {
         onOpenZoom={openZoom}
       />
       {isZoomOpen && <MermindZoomModal code={code} onClose={closeZoom} />}
-    </>
+    {/* </> */}
+    </div>
   );
 }

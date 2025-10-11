@@ -52,7 +52,7 @@ export default function ClientChatPage({ session }: { session: Session | null })
 
   if (isWakingUp) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center bg-black">
         <ChatSkeleton />
         <span className="ml-2 text-gray-600">Пробуждаем сервер, ждем…</span>
       </div>
@@ -61,7 +61,7 @@ export default function ClientChatPage({ session }: { session: Session | null })
 
   if (isLoadingModels) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center bg-black">
         <ChatSkeleton />
         <span className="ml-2 text-gray-600">Загружаем модели..</span>
       </div>
