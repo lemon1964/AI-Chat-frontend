@@ -1,3 +1,4 @@
+// src/components/features/mermind/MermindViews/MermindEditor.tsx
 export default function MermindEditor({
     code,
     setCode,

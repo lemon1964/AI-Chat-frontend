@@ -43,7 +43,7 @@ export const MobileHeaderView: FC<MobileHeaderViewProps> = ({
         ☰
       </button>
 
-      {/* Центральная часть (языки и модели) */}
+      {/* Центральная часть (языки, мермеид и модели) */}
       <div className="flex-1 mx-2 space-y-1">
         <div className="flex justify-center space-x-1">
           <button
@@ -70,6 +70,7 @@ export const MobileHeaderView: FC<MobileHeaderViewProps> = ({
             🧜‍♀️
           </Link>
 
+          {/* Блок профиля */}
           {session && (
             <Link href="/user" className="text-white text-lg">
               🧑

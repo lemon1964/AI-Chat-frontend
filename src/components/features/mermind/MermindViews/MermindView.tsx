@@ -60,7 +60,7 @@ type Props = {
   clearTags: () => void;
   onOpenZoom: () => void;
 };
-
+// detectedType
 export default function MermindView(props: Props) {
   const {
     text,

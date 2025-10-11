@@ -1,3 +1,4 @@
+// src/components/features/mermind/MermindViews/MermindPreview.tsx
 import { useMemo } from "react";
 import { wrapModelId } from "@ui/common/wrapModelId";
 import { extractMermaidCommentLines } from "@/utils/mermaidNotes";

@@ -1,3 +1,4 @@
+// src/components/features/mermind/MermindViews/MermindAdjust.tsx
 export default function MermindAdjust({
     instruction,
     setInstruction,

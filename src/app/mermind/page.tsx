@@ -20,11 +20,3 @@ export default function Page() {
     </>
   );
 }
-
-// import MermindContainer from "@features/mermind/MermindContainer";
-
-// export default function Page() {
-//   return(
-//   <MermindContainer />
-//   )
-// }

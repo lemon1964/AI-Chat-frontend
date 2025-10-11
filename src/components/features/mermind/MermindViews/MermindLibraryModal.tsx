@@ -1,4 +1,4 @@
-// src/components/features/mermind/MermindLibraryModal.tsx
+// src/components/features/mermind/MermindViews/MermindLibraryModal.tsx
 import Modal from "@ui/common/Modal";
 import { useState, useMemo } from "react";
 import { parseTagsCSV } from "@/utils/tags";

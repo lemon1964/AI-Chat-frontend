@@ -1,3 +1,4 @@
+// src/components/features/mermind/MermindViews/MermindZoomModal.tsx
 "use client";
 import { useEffect, useRef } from "react";
 import Modal from "@ui/common/Modal";

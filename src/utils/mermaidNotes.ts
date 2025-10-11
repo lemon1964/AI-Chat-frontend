@@ -1,3 +1,4 @@
+// src/utils/mermaidNotes.ts
 export function extractMermaidCommentLines(code: string): string[] {
     if (!code) return [];
     const out: string[] = [];

@@ -25,6 +25,12 @@ export default function ClientChatPage({ session }: { session: Session | null })
   useSyncRateTier(tier); // синхронизируем окно лимитов с оплатой
 
   useEffect(() => {
+    if (!session) {
+      localStorage.removeItem("auto-guest-login");
+    }
+  }, [session]);
+
+  useEffect(() => {
     const alreadyAutoLoggedIn = localStorage.getItem("auto-guest-login");
     const justSignedOutAt = parseInt(sessionStorage.getItem("justSignedOutAt") || "0", 10);
     const recentlySignedOut = Date.now() - justSignedOutAt < 5000;

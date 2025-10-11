@@ -1,4 +1,4 @@
-// все функции возвращают уже data
+// src/services/mermindClient.ts
 type Params = Record<string, unknown>;
 
 async function ax() {

@@ -1,13 +1,6 @@
 // src/components/features/mermind/MermindContainer.tsx
 "use client";
 
-/**
- * MermindContainer
- * — умный контейнер для страницы диаграмм.
- * Держит состояние формы, связь с redux-моделями, мермейд-превью и библиотеку.
- * Вьюха/разметка — в MermindViews.
- */
-
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";

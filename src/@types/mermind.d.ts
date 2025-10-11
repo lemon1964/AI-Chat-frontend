@@ -39,13 +39,3 @@ type DiagramListItem = {
   updated_at: string;
   // model_used?: string;
 }
-
-// type DiagramListItem = {
-//   id: number;
-//   title: string;
-//   source_text: string;
-//   type: string;
-//   updated_at: string;
-//   model_used?: string;
-// };
-

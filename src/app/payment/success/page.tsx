@@ -1,4 +1,4 @@
-// src/app/payment/success/page.tsx
+// app/payment/success/page.tsx
 import InfoScreen from "@ui/status/InfoScreen";
 
 export default function PaymentCompleted() {
