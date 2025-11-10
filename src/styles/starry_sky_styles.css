@@ -1,0 +1,28 @@
+/* starry_sky_styles.css */
+#stars,
+#stars2,
+#stars3 {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  pointer-events: none;
+}
+
+#stars {
+  background-image: radial-gradient(white 1px, transparent 1px);
+  background-size: 20px 20px;
+  opacity: 0.3;
+}
+
+#stars2 {
+  background-image: radial-gradient(white 1.5px, transparent 1.5px);
+  background-size: 40px 40px;
+  opacity: 0.2;
+}
+
+#stars3 {
+  background-image: radial-gradient(white 2px, transparent 2px);
+  background-size: 60px 60px;
+  opacity: 0.1;
+}
